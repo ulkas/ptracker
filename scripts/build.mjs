@@ -64,4 +64,6 @@ await Promise.all([
 const protocol = await readFile(join(dist, 'service-worker-protocol-v1.js'), 'utf8');
 if (/install[\s\S]{0,500}skipWaiting/.test(protocol)) throw new Error('The worker protocol must not activate during installation.');
 if (!protocol.includes('PREPARE_UPDATE') || !protocol.includes('ACTIVATE_UPDATE') || !protocol.includes('UPDATE_CONFIRMED')) throw new Error('The worker protocol is missing manual-update messages.');
+const audit = spawnSync(process.execPath, [join(root, 'scripts', 'network-audit.mjs')], { cwd: root, env: environment, stdio: 'inherit' });
+if (audit.status !== 0) process.exit(audit.status ?? 1);
 console.log(`Built PTracker ${packageJson.version} (${buildId}) with ${assets.length} cached shell files.`);

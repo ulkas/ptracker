@@ -1,13 +1,13 @@
 {
   "basePath": "/ptracker/",
-  "releasedAt": "2026-09-30T18:00:00Z",
+  "releasedAt": "2026-09-30T19:57:58Z",
   "minimumSupportedVersion": "0.1.0",
   "databaseVersion": 4,
-  "databaseMigration": true,
+  "databaseMigration": false,
   "backupRecommended": true,
   "releaseNotes": [
-    "Added user-controlled application updates",
-    "Added pre-update backup and live-session safeguards",
-    "Kept installed versions stable until explicit restart"
+    "Restricted normal app use to local device storage and computation",
+    "Limited automatic update discovery to one metadata request per 24 hours",
+    "Disabled pull-to-refresh and added production network auditing"
   ]
 }

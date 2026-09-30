@@ -1,7 +1,7 @@
 {
   "name": "ptracker",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -11,7 +11,8 @@
     "lint": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:pwa": "node scripts/update-lifecycle-smoke.mjs"
+    "test:pwa": "node scripts/update-lifecycle-smoke.mjs",
+    "audit:network": "node scripts/network-audit.mjs"
   },
   "dependencies": {
     "dexie": "^4.2.0",

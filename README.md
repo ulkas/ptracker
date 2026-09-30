@@ -1,6 +1,6 @@
 # PTracker
 
-PTracker is a private, mobile-first cash poker tracker that runs entirely in the browser. It is an installable PWA, works offline after its first complete load, and stores canonical data in IndexedDB. There is no account, backend, telemetry, or remote poker-data API.
+PTracker is a private, mobile-first cash poker tracker that runs entirely in the browser. It is an installable PWA, works offline after its first complete load, and stores canonical data in IndexedDB. There is no account, backend, telemetry, or remote poker-data API. Normal use is network-silent; the only automatic application request is a metadata-only update check no more than once per rolling 24 hours.
 
 ## What is implemented
 
@@ -40,12 +40,15 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run audit:network
 npm run test:pwa
 ```
 
 `test:pwa` uses an installed Chrome browser and the completed `dist/` build to exercise two releases end-to-end. Preview the production/offline build with `npm run preview`. In browser developer tools, verify the manifest is installable and switch the Network panel to Offline after one complete load.
 
-Application versions come from `package.json`. Release notes and migration flags live in `release.json`. A production build emits `version.json`, `release-manifest.json`, and a version-specific worker wrapper. The installed release remains cache-pinned until the user completes the update flow under Settings.
+To log reviewed application requests while developing, start Vite with `$env:VITE_NETWORK_AUDIT='1'; npm run dev` in PowerShell. This logs only the method, local URL, and declared reason—not poker data.
+
+Application versions come from `package.json`. Release notes and migration flags live in `release.json`. A production build emits `version.json`, `release-manifest.json`, and a version-specific worker wrapper. The installed release remains cache-pinned until the user completes the update flow under Settings. Root CSS disables installed-PWA pull-to-refresh while preserving ordinary page, dialog, history, and navigation scrolling. Browser-managed service-worker lifecycle checks remain under browser control and are distinct from application-initiated requests.
 
 ## Deploy later
 

@@ -10,6 +10,7 @@ const releases = { A: join(temp, 'A'), B: join(temp, 'B') };
 let active = 'A';
 let chrome;
 let server;
+const serverRequests = [];
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
@@ -49,6 +50,7 @@ function startServer() {
     server = createServer(async (request, response) => {
       try {
         const url = new URL(request.url ?? '/', 'http://localhost');
+        serverRequests.push({ method: request.method, pathname: url.pathname, search: url.search, headers: request.headers });
         if (!url.pathname.startsWith('/ptracker/')) { response.writeHead(404).end(); return; }
         let relative = decodeURIComponent(url.pathname.slice('/ptracker/'.length)) || 'index.html';
         const file = join(releases[active], relative);
@@ -97,15 +99,48 @@ try {
   assert(initial.controlled && initial.active?.endsWith(`/ptracker/sw-${currentVersion}.js`), 'Release A worker is not controlling the app.');
   assert(initial.caches.includes(`ptracker-app-${currentVersion}`), 'Release A cache is missing.');
 
+  const setLastCheck = async (iso) => cdp.evaluate(`new Promise((resolve,reject)=>{const request=indexedDB.open('PokerTrackerDB');request.onerror=()=>reject(request.error);request.onsuccess=()=>{const database=request.result;const transaction=database.transaction('appMetadata','readwrite');transaction.objectStore('appMetadata').put({key:'update',value:{currentVersion:'${currentVersion}',lastUpdateCheckAt:'${iso}'}});transaction.oncomplete=()=>{database.close();resolve(true)};transaction.onerror=()=>reject(transaction.error)}})`);
+  const applicationRequests = () => serverRequests.filter((request) => !/\/(?:sw-[^/]+|service-worker-protocol-v\d+)\.js$/.test(request.pathname));
+
+  await setLastCheck(new Date().toISOString());
+  serverRequests.length = 0;
+  await cdp.send('Page.reload'); await delay(1000);
+  assert(applicationRequests().length === 0, `A cached launch contacted the server while the update check was not due: ${JSON.stringify(applicationRequests())}`);
+  await cdp.evaluate(`(async()=>{for(const label of ['Dashboard','Sessions','Hands','Rooms','Bankroll','Settings']){const button=[...document.querySelectorAll('button')].find(node=>node.textContent?.trim()===label);button?.click();await new Promise(resolve=>setTimeout(resolve,30))}})()`);
+  assert(applicationRequests().length === 0, 'Local page navigation initiated a network request.');
+
+  await setLastCheck(new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString());
+  serverRequests.length = 0;
+  await cdp.send('Page.reload'); await delay(1200);
+  const dueChecks = applicationRequests().filter((request) => request.pathname === '/ptracker/version.json');
+  assert(dueChecks.length === 1 && applicationRequests().length === 1, `A due launch did not make exactly one metadata request: ${JSON.stringify(applicationRequests())}`);
+  assert(dueChecks[0].method === 'GET' && dueChecks[0].search === '', 'The scheduled metadata request was not a plain GET without query parameters.');
+  assert(!dueChecks[0].headers.cookie, 'The scheduled metadata request included cookies.');
+
+  serverRequests.length = 0;
+  await cdp.evaluate(`([...document.querySelectorAll('button')].find(node=>node.textContent?.trim()==='Check for updates'))?.click()`);
+  await delay(700);
+  const manualChecks = applicationRequests().filter((request) => request.pathname === '/ptracker/version.json');
+  assert(manualChecks.length === 1 && applicationRequests().length === 1, 'A manual update check did not make exactly one metadata request.');
+
   await cdp.send('Network.enable');
+  await setLastCheck(new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString());
+  serverRequests.length = 0;
+  const offlineScript = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false})" });
   await cdp.send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
   await cdp.send('Page.reload'); await delay(900);
   assert(await cdp.evaluate(`document.querySelector('meta[name="smoke-release"]')?.content`) === 'A', 'Release A did not reopen from cache while offline.');
+  assert(applicationRequests().length === 0, `Offline startup initiated an application request: ${JSON.stringify(applicationRequests())}`);
+  await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: offlineScript.identifier });
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
 
   active = 'B';
+  await setLastCheck(new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString());
+  serverRequests.length = 0;
   await cdp.send('Page.reload'); await delay(1200);
   assert(await cdp.evaluate(`document.querySelector('meta[name="smoke-release"]')?.content`) === 'A', 'Deploying B changed the app before user approval.');
+  assert(applicationRequests().filter((request) => request.pathname === '/ptracker/version.json').length === 1, 'Release B was not discovered with exactly one metadata request.');
+  assert((await cdp.evaluate(`document.body.innerText`)).includes(`Version ${nextVersion} is available`), 'The detected release was not shown in Settings.');
 
   const failedPreparation = await cdp.evaluate(`new Promise((resolve)=>{const channel=new MessageChannel();channel.port1.onmessage=e=>resolve(e.data);navigator.serviceWorker.controller.postMessage({type:'PREPARE_UPDATE',version:'8.8.8',manifestUrl:'/ptracker/missing-release.json'},[channel.port2])})`);
   assert(failedPreparation.type === 'PREPARE_FAILED', 'A failed download did not report failure.');

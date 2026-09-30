@@ -13,6 +13,6 @@ export default defineConfig({
     __BUILD_ID__: JSON.stringify(process.env.PTRACKER_BUILD_ID ?? 'development'),
     __DB_VERSION__: JSON.stringify(release.databaseVersion),
   },
-  build: { target: 'es2020', sourcemap: true },
+  build: { target: 'es2020', sourcemap: false },
   test: { environment: 'node', globals: true },
 });

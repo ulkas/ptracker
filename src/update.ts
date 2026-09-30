@@ -25,6 +25,9 @@ export interface UpdateMetadata {
   currentVersion: string;
   availableVersion?: string;
   availableRelease?: ReleaseMetadata;
+  lastUpdateCheckAt?: string;
+  lastUpdateCheckFailedAt?: string;
+  /** Legacy v0.2 field, read and normalized but no longer written. */
   latestCheckAt?: string;
   updateDetectedAt?: string;
   updateStartedAt?: string;
@@ -80,13 +83,24 @@ export function validateReleaseMetadata(value: unknown): ReleaseMetadata {
 }
 
 export function shouldRunPassiveCheck(metadata: UpdateMetadata | undefined, now = Date.now()) {
-  if (!metadata?.latestCheckAt) return true;
-  const checked = Date.parse(metadata.latestCheckAt);
+  const lastCheck = metadata?.lastUpdateCheckAt ?? metadata?.latestCheckAt;
+  if (!lastCheck) return true;
+  const checked = Date.parse(lastCheck);
   return Number.isNaN(checked) || now - checked >= PASSIVE_CHECK_INTERVAL_MS;
 }
 
-export async function fetchReleaseMetadata(fetcher: typeof fetch = fetch) {
-  const response = await fetcher(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store', headers: { Accept: 'application/json' } });
+export function normalizeUpdateMetadata(metadata: UpdateMetadata): UpdateMetadata {
+  if (metadata.lastUpdateCheckAt || !metadata.latestCheckAt) return metadata;
+  const { latestCheckAt, ...rest } = metadata;
+  return { ...rest, lastUpdateCheckAt: latestCheckAt };
+}
+
+export const releaseMetadataUrl = (base = import.meta.env.BASE_URL) => `${base}version.json`;
+
+export async function fetchReleaseMetadata(fetcher: typeof fetch = fetch, reason = 'scheduled update check') {
+  const url = releaseMetadataUrl();
+  if (import.meta.env.DEV && import.meta.env.VITE_NETWORK_AUDIT === '1') console.info(`NETWORK AUDIT\nGET ${url}\nReason: ${reason}`);
+  const response = await fetcher(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', headers: { Accept: 'application/json' } });
   if (!response.ok) throw new Error(`Update check returned HTTP ${response.status}.`);
   return validateReleaseMetadata(await response.json());
 }
@@ -98,7 +112,8 @@ export function stateFromMetadata(metadata?: UpdateMetadata): UpdateState {
 }
 
 export async function getUpdateMetadata(): Promise<UpdateMetadata | undefined> {
-  return (await db.appMetadata.get(UPDATE_METADATA_KEY))?.value as UpdateMetadata | undefined;
+  const metadata = (await db.appMetadata.get(UPDATE_METADATA_KEY))?.value as UpdateMetadata | undefined;
+  return metadata ? normalizeUpdateMetadata(metadata) : undefined;
 }
 
 export async function saveUpdateMetadata(metadata: UpdateMetadata) {

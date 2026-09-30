@@ -33,3 +33,6 @@ Rollback is intentionally not automatic. On a failed postcheck the prior `curren
 - the immutable protocol worker and hashed `/ptracker/assets/` served with long immutable caching
 - unknown `/ptracker/` navigation paths fall back to `/ptracker/index.html`
 - `X-Content-Type-Options: nosniff`, a restrictive CSP, and no injected analytics
+- no application or update-endpoint cookies; `/ptracker/version.json` must work without authentication
+
+The production build runs the network audit automatically. Post-deploy acceptance should confirm that a cached launch makes no application request when the 24-hour check is not due, while a due or explicit manual check requests only `/ptracker/version.json`.

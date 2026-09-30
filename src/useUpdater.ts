@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { APP_VERSION, activatePreparedRelease, compareSemver, confirmWorkerStartup, fetchReleaseMetadata, getUpdateMetadata, requestReleasePreparation, saveUpdateMetadata, shouldRunPassiveCheck, stateFromMetadata, verifyLocalDatabase, type ReleaseMetadata, type UpdateMetadata, type UpdateState } from './update';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { APP_VERSION, activatePreparedRelease, compareSemver, confirmWorkerStartup, fetchReleaseMetadata, getUpdateMetadata, normalizeUpdateMetadata, requestReleasePreparation, saveUpdateMetadata, shouldRunPassiveCheck, stateFromMetadata, verifyLocalDatabase, type ReleaseMetadata, type UpdateMetadata, type UpdateState } from './update';
 
 export interface UpdaterController {
   state: UpdateState;
@@ -16,27 +16,37 @@ export interface UpdaterController {
 export function useUpdater(databaseReady: boolean): UpdaterController {
   const [metadata, setMetadata] = useState<UpdateMetadata>();
   const [state, setState] = useState<UpdateState>({ status: 'IDLE' });
-  const persist = useCallback(async (next: UpdateMetadata) => { await saveUpdateMetadata(next); setMetadata(next); }, []);
+  const metadataRef = useRef<UpdateMetadata | undefined>(undefined);
+  const inFlightRef = useRef<Promise<void> | null>(null);
+  const persist = useCallback(async (next: UpdateMetadata) => { const normalized = normalizeUpdateMetadata(next); await saveUpdateMetadata(normalized); metadataRef.current = normalized; setMetadata(normalized); }, []);
 
-  const check = useCallback(async (manual = true) => {
-    if (manual) setState({ status: 'CHECKING' });
-    if (!navigator.onLine) { if (manual) setState({ status: 'OFFLINE' }); return; }
-    try {
-      const release = await fetchReleaseMetadata();
-      const checkedAt = new Date().toISOString();
-      const current: UpdateMetadata = metadata ?? { currentVersion: APP_VERSION };
-      if (compareSemver(release.latestVersion, APP_VERSION) > 0) {
-        const next = { ...current, currentVersion: APP_VERSION, availableVersion: release.latestVersion, availableRelease: release, latestCheckAt: checkedAt, updateDetectedAt: current.updateDetectedAt ?? checkedAt, lastFailure: undefined };
-        await persist(next); setState({ status: next.preparedVersion === release.latestVersion ? 'READY_TO_ACTIVATE' : 'UPDATE_AVAILABLE' });
-      } else {
-        const next = { ...current, currentVersion: APP_VERSION, availableVersion: undefined, availableRelease: undefined, preparedVersion: undefined, latestCheckAt: checkedAt, updateDetectedAt: undefined, lastFailure: undefined };
-        await persist(next); setState({ status: 'UP_TO_DATE' });
+  const check = useCallback((manual = true) => {
+    if (inFlightRef.current) return inFlightRef.current;
+    const operation = (async () => {
+      if (manual) setState({ status: 'CHECKING' });
+      if (!navigator.onLine) { if (manual) setState({ status: 'OFFLINE' }); return; }
+      const attemptedAt = new Date().toISOString();
+      const current: UpdateMetadata = metadataRef.current ?? { currentVersion: APP_VERSION };
+      const attempted = { ...current, currentVersion: APP_VERSION, lastUpdateCheckAt: attemptedAt, latestCheckAt: undefined };
+      try {
+        await persist(attempted);
+        const release = await fetchReleaseMetadata(fetch, manual ? 'manual update check' : 'scheduled update check');
+        if (compareSemver(release.latestVersion, APP_VERSION) > 0) {
+          const next = { ...attempted, availableVersion: release.latestVersion, availableRelease: release, updateDetectedAt: attempted.updateDetectedAt ?? attemptedAt, lastUpdateCheckFailedAt: undefined, lastFailure: undefined };
+          await persist(next); setState({ status: next.preparedVersion === release.latestVersion ? 'READY_TO_ACTIVATE' : 'UPDATE_AVAILABLE' });
+        } else {
+          const next = { ...attempted, availableVersion: undefined, availableRelease: undefined, preparedVersion: undefined, updateDetectedAt: undefined, lastUpdateCheckFailedAt: undefined, lastFailure: undefined };
+          await persist(next); setState({ status: 'UP_TO_DATE' });
+        }
+      } catch (reason) {
+        const error = reason instanceof Error ? reason.message : 'Unable to check for updates.';
+        try { await persist({ ...attempted, lastUpdateCheckFailedAt: attemptedAt, lastFailure: error }); } catch { /* Local metadata failure must not block the app. */ }
+        if (manual) setState({ status: navigator.onLine ? 'FAILED' : 'OFFLINE', error });
       }
-    } catch (reason) {
-      const error = reason instanceof Error ? reason.message : 'Unable to check for updates.';
-      if (manual) setState({ status: navigator.onLine ? 'FAILED' : 'OFFLINE', error });
-    }
-  }, [metadata, persist]);
+    })().finally(() => { inFlightRef.current = null; });
+    inFlightRef.current = operation;
+    return operation;
+  }, [persist]);
 
   const prepare = useCallback(async () => {
     const release = metadata?.availableRelease;
@@ -75,7 +85,7 @@ export function useUpdater(databaseReady: boolean): UpdaterController {
       const stored = await getUpdateMetadata();
       if (cancelled) return;
       const initial: UpdateMetadata = stored ?? { currentVersion: APP_VERSION };
-      setMetadata(initial); setState(stateFromMetadata(initial));
+      metadataRef.current = initial; setMetadata(initial); setState(stateFromMetadata(initial));
       if (initial.targetVersion === APP_VERSION && initial.updateStartedAt && !initial.updateCompletedAt) {
         setState({ status: 'MIGRATING' });
         try {
@@ -88,7 +98,20 @@ export function useUpdater(databaseReady: boolean): UpdaterController {
       }
     })();
     return () => { cancelled = true; };
-  }, [databaseReady]); // The initial check intentionally runs once per database startup.
+  }, [databaseReady, check, persist]);
+
+  useEffect(() => {
+    if (!databaseReady) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      void (async () => {
+        const stored = await getUpdateMetadata();
+        if (shouldRunPassiveCheck(stored)) await check(false);
+      })();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [databaseReady, check]);
 
   const release = metadata?.availableRelease;
   const hasUpdate = useMemo(() => Boolean(metadata?.availableVersion && compareSemver(metadata.availableVersion, APP_VERSION) > 0), [metadata]);
