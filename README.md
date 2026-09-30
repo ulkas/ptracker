@@ -4,11 +4,12 @@ PTracker is a private, mobile-first cash poker tracker that runs entirely in the
 
 ## What is implemented
 
-- Installable/offline production PWA with explicit update prompt
+- Installable/offline production PWA with strictly manual, backup-aware version updates
 - Poker rooms with default stakes, live NLH sessions, and historical-session entry
 - Event-based buy-ins, add-ons, tips, expenses, breaks and cash-out
 - Gross/net P&L, duration, hourly, BB/hour, room and filtered dashboard statistics
-- Cumulative native-SVG P&L chart
+- Currency-safe cumulative native-SVG profit and bankroll charts
+- Monthly session calendar with daily net results
 - Session history and search
 - Quick gain/loss tracking plus detailed hands with a mobile 52-card picker
 - Tracked live stack in currency and big blinds, with cash-out reconciliation
@@ -19,7 +20,7 @@ PTracker is a private, mobile-first cash poker tracker that runs entirely in the
 - Persistent-storage request, browser quota diagnostics and 5 MiB soft app quota display
 - Dark/light/system themes and responsive phone/tablet/desktop layouts
 
-Advanced action-by-action hand replay, range-grid parsing, player sample counters, calendar heatmaps, and bankroll-by-room are documented future increments rather than hidden stubs.
+Advanced action-by-action hand replay, range-grid parsing, player sample counters, and bankroll-by-room are documented future increments rather than hidden stubs.
 
 ## Develop
 
@@ -39,9 +40,12 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run test:pwa
 ```
 
-Preview the production/offline build with `npm run preview`. In browser developer tools, verify the manifest is installable and switch the Network panel to Offline after one complete load.
+`test:pwa` uses an installed Chrome browser and the completed `dist/` build to exercise two releases end-to-end. Preview the production/offline build with `npm run preview`. In browser developer tools, verify the manifest is installable and switch the Network panel to Offline after one complete load.
+
+Application versions come from `package.json`. Release notes and migration flags live in `release.json`. A production build emits `version.json`, `release-manifest.json`, and a version-specific worker wrapper. The installed release remains cache-pinned until the user completes the update flow under Settings.
 
 ## Deploy later
 

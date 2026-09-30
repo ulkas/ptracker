@@ -38,6 +38,7 @@ export interface AllIn {
 export interface Player { id: string; nickname: string; aliases: string[]; notes: string; tags: string[]; firstSeen: string; lastSeen: string; roomIds: string[]; }
 export interface BankrollEvent { id: string; timestamp: string; type: 'DEPOSIT' | 'WITHDRAWAL' | 'POKER_RESULT' | 'ADJUSTMENT' | 'TRANSFER'; amount: number; currency: Currency; note: string; source: 'manual' | 'session' | 'expense'; sessionId?: string; expenseId?: string; }
 export interface Setting { key: string; value: unknown; }
+export interface AppMetadata { key: string; value: unknown; }
 
 export interface SessionMetrics {
   totalIn: number; cashOut: number; tableTips: number; endTips: number; expenses: number;

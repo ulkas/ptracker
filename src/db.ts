@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { AllIn, BankrollEvent, Hand, Player, PokerRoom, Session, SessionBreak, SessionCashEvent, Setting } from './types';
+import type { AllIn, AppMetadata, BankrollEvent, Hand, Player, PokerRoom, Session, SessionBreak, SessionCashEvent, Setting } from './types';
 
 export class PokerTrackerDB extends Dexie {
   pokerRooms!: EntityTable<PokerRoom, 'id'>;
@@ -11,6 +11,7 @@ export class PokerTrackerDB extends Dexie {
   players!: EntityTable<Player, 'id'>;
   bankrollEvents!: EntityTable<BankrollEvent, 'id'>;
   settings!: EntityTable<Setting, 'key'>;
+  appMetadata!: EntityTable<AppMetadata, 'key'>;
 
   constructor(name = 'PokerTrackerDB') {
     super(name);
@@ -50,6 +51,18 @@ export class PokerTrackerDB extends Dexie {
       players: 'id, nickname, lastSeen, *tags, *roomIds',
       bankrollEvents: 'id, timestamp, type, currency, sessionId, expenseId',
       settings: 'key',
+    });
+    this.version(4).stores({
+      pokerRooms: 'id, name, favorite, archived, updatedAt',
+      sessions: 'id, roomId, startedAt, endedAt, active, [roomId+startedAt]',
+      sessionCashEvents: 'id, sessionId, timestamp, type, [sessionId+timestamp]',
+      sessionBreaks: 'id, sessionId, startedAt, endedAt',
+      hands: 'id, sessionId, timestamp, heroPosition, entryMode, *tags',
+      allIns: 'id, sessionId, handId, timestamp',
+      players: 'id, nickname, lastSeen, *tags, *roomIds',
+      bankrollEvents: 'id, timestamp, type, currency, sessionId, expenseId',
+      settings: 'key',
+      appMetadata: 'key',
     });
   }
 }

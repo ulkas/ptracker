@@ -1,6 +1,6 @@
 # Implementation plan
 
-1. Foundation: Vite/React/TypeScript, responsive design tokens, manifest, icons, service worker and update prompt.
+1. Foundation: Vite/React/TypeScript, responsive design tokens, manifest, icons, version-pinned service worker and manual update flow.
 2. Data/domain: Dexie schema, typed entities, pure money/session/statistics functions, storage quota and persistent-storage request.
 3. Core tracker: rooms, session setup, live event timeline, break timer, cash-out, session history/detail, dashboard and native SVG P/L chart.
 4. Portability: validated transactional JSON backup/restore, CSV export, storage diagnostics.

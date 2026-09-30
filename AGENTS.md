@@ -7,3 +7,5 @@
 - Before meaningful changes, read `README.md` and the relevant files under `docs/`.
 - Run `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` after significant changes.
 - Deployment is static-file only. Do not deploy unless explicitly requested. Follow `docs/deployment-agent.md` and use `scripts/deploy.ps1`.
+- `public/service-worker-protocol-v1.js` is immutable after the first production release. Add a new protocol file for incompatible changes; never silently change an installed protocol.
+- Every production release must use a new semantic version in `package.json` and synchronized release information in `release.json`. Do not reuse a version number for different assets.

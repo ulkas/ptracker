@@ -1,6 +1,6 @@
 # Database schema
 
-Database: `PokerTrackerDB`, Dexie version 3. Version 2 added room stake defaults, hand entry modes, optional standalone expenses, and session-linked bankroll events without clearing version 1 data. Version 3 indexes standalone-expense bankroll links and backfills existing standalone expenses as negative ledger entries.
+Database: `PokerTrackerDB`, Dexie version 4. Version 2 added room stake defaults, hand entry modes, optional standalone expenses, and session-linked bankroll events without clearing version 1 data. Version 3 indexes standalone-expense bankroll links. Version 4 adds device-local update metadata without modifying poker records.
 
 | Table | Primary/indexed fields | Purpose |
 | --- | --- | --- |
@@ -13,5 +13,6 @@ Database: `PokerTrackerDB`, Dexie version 3. Version 2 added room stake defaults
 | players | `id`, `nickname`, `lastSeen` | Opponent notes |
 | bankrollEvents | `id`, `timestamp`, `type`, `currency`, `sessionId`, `expenseId` | Per-currency ledger with linked session results and standalone expenses |
 | settings | `key` | Theme, headline P/L, quota and backup metadata |
+| appMetadata | `key` | Device-specific update detection and preparation state; excluded from poker backups |
 
 Money is always an integer number of minor units with an adjacent ISO-4217 currency code. IDs are UUIDs. Times are ISO-8601 strings. Session-linked expenses are already included in the completed session's net result; only standalone expenses receive their own negative bankroll event, preventing double counting. Later versions must use `db.version(n).stores(...).upgrade(...)`; tables must not be deleted as a shortcut.

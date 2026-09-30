@@ -6,7 +6,7 @@ PTracker deploys as static files only. It does not run Node.js, a database, Comp
 
 1. Copy `scripts/deploy.local.example.ps1` to ignored `scripts/deploy.local.ps1`.
 2. Set the SSH target, private-key path, app root, and public HTTPS URL. Never commit this file.
-3. Provision the hostname and TLS certificate in the shared proxy. A minimal Nginx location example is in `deploy/nginx-ptracker.conf.example`; integrate it deliberately rather than replacing shared proxy configuration.
+3. Provision the hostname, `/ptracker/` path, and TLS certificate in the shared proxy. A minimal Nginx location example is in `deploy/nginx-ptracker.conf.example`; integrate it deliberately rather than replacing shared proxy configuration.
 4. Ensure the SSH user can write only the configured PTracker application directory.
 
 ## Routine deployment
@@ -19,6 +19,8 @@ PTracker deploys as static files only. It does not run Node.js, a database, Comp
 
 `deploy` runs all local verification, builds `dist/`, creates a source manifest, uploads one archive, backs up the current static release remotely, extracts to a new release directory, and atomically switches the `current` symlink. Backups and releases remain beneath the configured PTracker app root. It does not touch the shared proxy or other applications.
 
+Before building a release, update the canonical version in `package.json` and the release description in `release.json`. The build emits version metadata, a required-asset manifest, and `sw-<version>.js`. Do not reuse a version number for different application contents. The immutable `service-worker-protocol-v1.js` must never be edited after its first production release; introduce a new protocol file for an incompatible future change.
+
 ## Rollback
 
 Rollback is intentionally not automatic. On a failed postcheck the prior `current` target remains named in the deployment output. Switching to it is a production mutation and should be performed only after explicit approval and inspection.
@@ -26,7 +28,8 @@ Rollback is intentionally not automatic. On a failed postcheck the prior `curren
 ## Static host requirements
 
 - HTTPS and correct MIME types for `.webmanifest`, JavaScript, CSS, SVG, and PNG
-- `/service-worker.js` served from origin root with `Cache-Control: no-cache`
-- hashed `/assets/` served with long immutable caching
-- unknown navigation paths fall back to `/index.html`
+- `/ptracker/version.json` and `/ptracker/release-manifest.json` served with `Cache-Control: no-store`
+- `/ptracker/sw-<version>.js` served only when it exists, with no SPA fallback
+- the immutable protocol worker and hashed `/ptracker/assets/` served with long immutable caching
+- unknown `/ptracker/` navigation paths fall back to `/ptracker/index.html`
 - `X-Content-Type-Options: nosniff`, a restrictive CSP, and no injected analytics

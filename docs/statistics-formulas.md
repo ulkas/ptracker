@@ -26,3 +26,7 @@ During an active session only:
 Expenses do not change the physical table stack. Once a session ends, cash-out becomes authoritative and recorded hands are not counted again.
 
 Aggregate hourly and BB/hour divide aggregate result by aggregate hours; they are never averages of per-session rates. Filters are applied to the session set before every statistic or chart grouping.
+
+Dashboard analytics always select one currency before aggregating. The cumulative profit chart starts at zero and adds finalized session net results in chronological order. The calendar groups finalized session net results by the local start date within its independently selected month.
+
+The bankroll chart also starts at zero for each selected period and cumulatively adds only ledger events in the selected currency. It therefore represents change during the period, while the balance cards remain authoritative all-time balances.

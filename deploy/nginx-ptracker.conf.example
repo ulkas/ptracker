@@ -1,20 +1,37 @@
 # Merge into the existing HTTPS virtual host; do not replace shared VPS config blindly.
-root /srv/ptracker/current;
-index index.html;
-
-location = /service-worker.js {
-    add_header Cache-Control "no-cache" always;
-    try_files $uri =404;
+# PTracker is built for the /ptracker/ path and dist/ is extracted into /srv/ptracker/current.
+location = /ptracker/version.json {
+    alias /srv/ptracker/current/version.json;
+    default_type application/json;
+    add_header Cache-Control "no-store, no-cache, must-revalidate" always;
 }
 
-location /assets/ {
+location = /ptracker/release-manifest.json {
+    alias /srv/ptracker/current/release-manifest.json;
+    default_type application/json;
+    add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+}
+
+location ~ ^/ptracker/(sw-[0-9A-Za-z.+-]+\.js)$ {
+    alias /srv/ptracker/current/$1;
+    add_header Cache-Control "no-cache" always;
+}
+
+location = /ptracker/service-worker-protocol-v1.js {
+    alias /srv/ptracker/current/service-worker-protocol-v1.js;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+}
+
+location /ptracker/assets/ {
+    alias /srv/ptracker/current/assets/;
     add_header Cache-Control "public, max-age=31536000, immutable" always;
     try_files $uri =404;
 }
 
-location / {
+location /ptracker/ {
+    alias /srv/ptracker/current/;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer" always;
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
-    try_files $uri $uri/ /index.html;
+    try_files $uri $uri/ /ptracker/index.html;
 }

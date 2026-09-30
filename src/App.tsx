@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import type { ServiceWorkerRegistration } from './vite-env';
 import { db, makeId, notifyDbChanged, readAllData } from './db';
 import { aggregate, APP_DATA_LIMIT_BYTES, durationLabel, filterSessions, money, parseMoney, potOdds, quotaLevel, sessionMetrics, utf8Size } from './domain';
 import { createBackup, downloadFile, restoreBackup, sessionsCsv, validateBackup, type BackupEnvelope } from './backup';
@@ -22,13 +21,8 @@ export default function App() {
   const { data, loading } = useData();
   const [view, setView] = useState<View>(getInitialView);
   const [filter, setFilter] = useState<FilterModel>({ period: 'all', roomId: '', query: '', result: 'all' });
-  const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
   const theme = (data.settings.find((item) => item.key === 'theme')?.value ?? 'dark') as Theme;
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-  useEffect(() => {
-    const handler = (event: Event) => setUpdate((event as CustomEvent<ServiceWorkerRegistration>).detail);
-    window.addEventListener('ptracker:update', handler); return () => window.removeEventListener('ptracker:update', handler);
-  }, []);
   const active = data.sessions.find((session) => session.active);
 
   if (loading) return <main className="splash"><span className="brand-mark">P</span><strong>PTracker</strong><small>Opening your local database…</small></main>;
@@ -50,7 +44,6 @@ export default function App() {
       {view === 'settings' && <Settings data={data} theme={theme} />}
     </main>
     <div className="mobile-nav"><Nav active={view} onChange={navigate} hasLive={Boolean(active)} /></div>
-    {update && <div className="update-toast"><div><strong>Update ready</strong><span>Your data stays on this device.</span></div><button onClick={() => { update.waiting?.postMessage({ type: 'SKIP_WAITING' }); location.reload(); }}>Update now</button></div>}
   </div>;
 }
 

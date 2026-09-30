@@ -3,22 +3,22 @@ import { db, notifyDbChanged, readAllData } from './db';
 import { sessionMetrics } from './domain';
 import type { AppData, PokerRoom, Session } from './types';
 
-export interface BackupEnvelope { application: 'poker-tracker'; backupVersion: 1; databaseVersion: 1 | 2 | 3; exportedAt: string; data: AppData; }
-const tables: (keyof AppData)[] = ['pokerRooms', 'sessions', 'sessionCashEvents', 'sessionBreaks', 'hands', 'allIns', 'players', 'bankrollEvents', 'settings'];
+export interface BackupEnvelope { application: 'poker-tracker'; backupVersion: 1; databaseVersion: 1 | 2 | 3 | 4; exportedAt: string; data: AppData; }
+export const BACKUP_TABLES: (keyof AppData)[] = ['pokerRooms', 'sessions', 'sessionCashEvents', 'sessionBreaks', 'hands', 'allIns', 'players', 'bankrollEvents', 'settings'];
 
-export async function createBackup(): Promise<BackupEnvelope> {
-  return { application: 'poker-tracker', backupVersion: 1, databaseVersion: 3, exportedAt: new Date().toISOString(), data: await readAllData() };
+export async function createBackup(database = db): Promise<BackupEnvelope> {
+  return { application: 'poker-tracker', backupVersion: 1, databaseVersion: 4, exportedAt: new Date().toISOString(), data: await readAllData(database) };
 }
 
 export function validateBackup(input: unknown): BackupEnvelope {
   if (!input || typeof input !== 'object') throw new Error('Backup must be a JSON object.');
   const value = input as Partial<BackupEnvelope>;
   if (value.application !== 'poker-tracker') throw new Error('This file is not a PTracker backup.');
-  if (value.backupVersion !== 1 || ![1, 2, 3].includes(value.databaseVersion ?? 0)) throw new Error('Unsupported backup version.');
+  if (value.backupVersion !== 1 || ![1, 2, 3, 4].includes(value.databaseVersion ?? 0)) throw new Error('Unsupported backup version.');
   if (!value.exportedAt || Number.isNaN(Date.parse(value.exportedAt))) throw new Error('Backup timestamp is invalid.');
   if (!value.data || typeof value.data !== 'object') throw new Error('Backup data is missing.');
   const ids = new Set<string>();
-  for (const table of tables) {
+  for (const table of BACKUP_TABLES) {
     const rows = value.data[table];
     if (!Array.isArray(rows)) throw new Error(`Backup table ${table} is missing.`);
     for (const row of rows as unknown[]) {
@@ -49,11 +49,12 @@ export function validateBackup(input: unknown): BackupEnvelope {
   return value as BackupEnvelope;
 }
 
-export async function restoreBackup(backup: BackupEnvelope) {
+export async function restoreBackup(backup: BackupEnvelope, database = db) {
   validateBackup(backup);
-  await db.transaction('rw', db.tables, async () => {
-    for (const table of db.tables) await table.clear();
-    for (const name of tables) await (db.table(name) as Dexie.Table<Record<string, unknown>, string>).bulkAdd(backup.data[name] as unknown as Record<string, unknown>[]);
+  const tables = BACKUP_TABLES.map((name) => database.table(name));
+  await database.transaction('rw', tables, async () => {
+    for (const table of tables) await table.clear();
+    for (const name of BACKUP_TABLES) await (database.table(name) as Dexie.Table<Record<string, unknown>, string>).bulkAdd(backup.data[name] as unknown as Record<string, unknown>[]);
   });
   notifyDbChanged();
 }

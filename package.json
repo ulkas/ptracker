@@ -1,16 +1,17 @@
 {
   "name": "ptracker",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build && node scripts/inject-sw.mjs",
+    "build": "node scripts/build.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:pwa": "node scripts/update-lifecycle-smoke.mjs"
   },
   "dependencies": {
     "dexie": "^4.2.0",
