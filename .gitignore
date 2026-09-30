@@ -1,0 +1,13 @@
+node_modules/
+scripts/deploy.ps1
+scripts/deploy.local.ps1
+dist/
+.vite/
+coverage/
+*.local
+.env*
+!.env.example
+.deploy.local.ps1
+*.zip
+*.tar.gz
+*.tsbuildinfo

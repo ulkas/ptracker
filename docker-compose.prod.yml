@@ -1,0 +1,27 @@
+services:
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - /ptracker/current:/usr/share/nginx/html:ro
+      - /ptracker/deploy/nginx-ptracker.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - edge
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=edge
+      - traefik.http.middlewares.ptracker-strip.stripprefix.prefixes=/ptracker
+      - traefik.http.routers.ptracker-http.entrypoints=web
+      - traefik.http.routers.ptracker-http.middlewares=redirect-to-https
+      - traefik.http.routers.ptracker-http.rule=Host(`ulkas.duckdns.org`) && PathPrefix(`/ptracker`)
+      - traefik.http.routers.ptracker.entrypoints=websecure
+      - traefik.http.routers.ptracker.middlewares=ptracker-strip
+      - traefik.http.routers.ptracker.rule=Host(`ulkas.duckdns.org`) && PathPrefix(`/ptracker`)
+      - traefik.http.routers.ptracker.tls=true
+      - traefik.http.routers.ptracker.tls.certresolver=letsencrypt
+      - traefik.http.services.ptracker.loadbalancer.server.port=80
+
+networks:
+  edge:
+    external: true
+    name: edge

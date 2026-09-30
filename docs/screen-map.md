@@ -1,0 +1,14 @@
+# Screen map
+
+- Dashboard: headline net/gross result, cumulative chart, hours, hourly, BB/hour, session count, recent sessions, room and stake performance, global time filter.
+- Sessions: chronological/searchable history, historical entry, session editing and cascade deletion. Its action starts or returns to Live.
+- Live: session setup or active table-optimized timer, total in/current stack/P&L, quick buy-in/add-on/tip/expense/hand/all-in/break actions, cash-out flow.
+- Hands: manual hand list and compact recorder with hero position, cards, board, result, notes and tags.
+- Rooms: venue CRUD, archival, notes, currencies, and default stakes.
+- Expenses: session and standalone expense CRUD with notes.
+- Tips: automatically categorized in-game and post-game tips with period filtering.
+- Bankroll: independent per-currency ledger with automatic completed-session results and period-filtered activity.
+- Tools: offline equity and pot-odds calculators and all-in EV summary.
+- Settings: theme, headline preference, persistent-storage status, application quota, browser quota, backup/restore and CSV export.
+
+Mobile uses five fixed bottom destinations. Desktop switches to a persistent left rail and multi-column analytics.

@@ -1,0 +1,22 @@
+{
+  "name": "PTracker — Cash Poker Tracker",
+  "short_name": "PTracker",
+  "description": "Private, offline-first live cash poker tracker.",
+  "id": "/ptracker/",
+  "start_url": "/ptracker/",
+  "scope": "/ptracker/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    { "src": "/ptracker/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ptracker/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/ptracker/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Start session", "short_name": "Start", "url": "/ptracker/?view=live" },
+    { "name": "Record hand", "short_name": "Hand", "url": "/ptracker/?view=hands" }
+  ]
+}
