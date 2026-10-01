@@ -6,7 +6,7 @@ Full backups are UTF-8 JSON named `poker-tracker-backup-YYYY-MM-DD.json`.
 {
   "application": "poker-tracker",
   "backupVersion": 1,
-  "databaseVersion": 4,
+  "databaseVersion": 5,
   "exportedAt": "2026-09-30T12:00:00.000Z",
   "data": {
     "pokerRooms": [],

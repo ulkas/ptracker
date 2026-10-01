@@ -64,6 +64,25 @@ export class PokerTrackerDB extends Dexie {
       settings: 'key',
       appMetadata: 'key',
     });
+    this.version(5).stores({
+      pokerRooms: 'id, name, favorite, archived, updatedAt',
+      sessions: 'id, roomId, startedAt, endedAt, active, [roomId+startedAt]',
+      sessionCashEvents: 'id, sessionId, timestamp, type, [sessionId+timestamp]',
+      sessionBreaks: 'id, sessionId, startedAt, endedAt',
+      hands: 'id, sessionId, timestamp, heroPosition, entryMode, gameType, *tags',
+      allIns: 'id, sessionId, handId, timestamp',
+      players: 'id, nickname, lastSeen, *tags, *roomIds',
+      bankrollEvents: 'id, timestamp, type, currency, sessionId, expenseId',
+      settings: 'key',
+      appMetadata: 'key',
+    }).upgrade(async (tx) => {
+      const sessions = new Map<string, string>();
+      await tx.table('sessions').toCollection().modify((session) => { session.gameType ??= 'NLH'; sessions.set(session.id, session.gameType); });
+      await tx.table('hands').toCollection().modify((hand) => {
+        hand.gameType ??= sessions.get(hand.sessionId) ?? 'NLH';
+        hand.boards ??= hand.board?.length ? [hand.board] : [[]];
+      });
+    });
   }
 }
 

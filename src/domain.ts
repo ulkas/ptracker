@@ -33,8 +33,9 @@ export function sessionMetrics(session: Session, events: SessionCashEvent[], bre
 export function liveSessionMetrics(session: Session, events: SessionCashEvent[], hands: Hand[], breaks: SessionBreak[] = [], now = Date.now()): LiveSessionMetrics {
   const base = sessionMetrics(session, events, breaks, now);
   const recordedPokerResult = hands.filter((hand) => hand.sessionId === session.id).reduce((sum, hand) => sum + hand.result, 0);
-  const trackedStack = Math.max(0, base.totalIn + recordedPokerResult - base.tableTips);
-  const liveNetResult = recordedPokerResult - base.tableTips - base.endTips - base.expenses;
+  const adjustments = events.filter((event) => event.sessionId === session.id && event.type === 'ADJUSTMENT').reduce((sum, event) => sum + event.amount, 0);
+  const trackedStack = Math.max(0, base.totalIn + recordedPokerResult + adjustments - base.tableTips);
+  const liveNetResult = recordedPokerResult + adjustments - base.tableTips - base.endTips - base.expenses;
   const hours = base.durationMs / 3_600_000;
   return {
     ...base,

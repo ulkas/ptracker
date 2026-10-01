@@ -7,7 +7,7 @@ const names: string[] = [];
 const create = () => { const database = new PokerTrackerDB(`PTrackerTest-${crypto.randomUUID()}`); names.push(database.name); return database; };
 afterEach(async () => { for (const name of names.splice(0)) await indexedDB.deleteDatabase(name); });
 
-describe('database version 4', () => {
+describe('database version 5', () => {
   it('creates, updates and deletes a room/session graph', async () => {
     const database = create(), now = new Date().toISOString();
     await database.pokerRooms.add({ id: 'r', name: 'Room', city: '', country: '', defaultCurrency: 'EUR', defaultSmallBlind: 100, defaultBigBlind: 200, notes: '', favorite: false, archived: false, createdAt: now, updatedAt: now });
@@ -21,7 +21,7 @@ describe('database version 4', () => {
     expect(await database.pokerRooms.count()).toBe(0); await database.close();
   });
   it('opens the declared migration without clearing data', async () => {
-    const database = create(); await database.open(); expect(database.verno).toBe(4); expect(database.tables.map((table) => table.name)).toContain('appMetadata'); await database.close();
+    const database = create(); await database.open(); expect(database.verno).toBe(5); expect(database.tables.map((table) => table.name)).toContain('appMetadata'); await database.close();
   });
   it('migrates a populated v3 database without losing poker or active-session data', async () => {
     const name = `PTrackerTest-${crypto.randomUUID()}`; names.push(name);
@@ -36,7 +36,7 @@ describe('database version 4', () => {
     await legacy.table('bankrollEvents').add({ id: 'b', timestamp: now, type: 'POKER_RESULT', amount: 1000, currency: 'EUR', note: '', source: 'session', sessionId: 's1' });
     legacy.close();
     const database = new PokerTrackerDB(name); await database.open();
-    expect(database.verno).toBe(4); expect(await database.sessions.count()).toBe(1000); expect((await database.sessions.get('s0'))?.active).toBe(true); expect(await database.hands.count()).toBe(1); expect(await database.allIns.count()).toBe(1); expect(await database.bankrollEvents.count()).toBe(1); expect(await database.appMetadata.count()).toBe(0);
+    expect(database.verno).toBe(5); expect(await database.sessions.count()).toBe(1000); expect((await database.sessions.get('s0'))?.active).toBe(true); expect((await database.sessions.get('s0'))?.gameType).toBe('NLH'); expect(await database.hands.count()).toBe(1); expect((await database.hands.get('h'))?.boards).toEqual([[]]); expect((await database.hands.get('h'))?.gameType).toBe('NLH'); expect(await database.allIns.count()).toBe(1); expect(await database.bankrollEvents.count()).toBe(1); expect(await database.appMetadata.count()).toBe(0);
     database.close();
   });
 });

@@ -1,13 +1,15 @@
 {
   "basePath": "/ptracker/",
-  "releasedAt": "2026-09-30T19:57:58Z",
+  "releasedAt": "2026-10-01T12:40:00Z",
   "minimumSupportedVersion": "0.1.0",
-  "databaseVersion": 4,
-  "databaseMigration": false,
+  "databaseVersion": 5,
+  "databaseMigration": true,
   "backupRecommended": true,
   "releaseNotes": [
     "Restricted normal app use to local device storage and computation",
     "Limited automatic update discovery to one metadata request per 24 hours",
-    "Disabled pull-to-refresh and added production network auditing"
+    "Disabled pull-to-refresh and added production network auditing",
+    "Added NLH, PLO4, PLO5, and PLO4 double-board bomb-pot hand recording",
+    "Added manual tracked-stack adjustment during live sessions"
   ]
 }

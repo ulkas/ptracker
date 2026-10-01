@@ -1,6 +1,6 @@
 export type Currency = 'EUR' | 'USD' | 'GBP' | 'CZK' | 'PLN';
 export type CashEventType = 'INITIAL_BUYIN' | 'REBUY' | 'ADDON' | 'CASHOUT' | 'TIP_TABLE' | 'TIP_END' | 'EXPENSE' | 'ADJUSTMENT';
-export type GameType = 'NLH';
+export type GameType = 'NLH' | 'PLO4' | 'PLO5' | 'PLO4_DOUBLE_BOARD_BOMB_POT';
 export type Theme = 'system' | 'dark' | 'light';
 
 export interface PokerRoom {
@@ -26,7 +26,7 @@ export interface HandAction { player: string; street: 'PREFLOP' | 'FLOP' | 'TURN
 export interface Hand {
   id: string; sessionId?: string; timestamp: string; tableSize: number; smallBlind: number; bigBlind: number;
   currency: Currency; effectiveStack: number; heroPosition: string; heroCards: string[]; board: string[];
-  entryMode: 'quick' | 'detailed'; result: number; notes: string; tags: string[]; actions: HandAction[];
+  boards?: string[][]; gameType?: GameType; entryMode: 'quick' | 'detailed'; result: number; notes: string; tags: string[]; actions: HandAction[];
 }
 
 export interface AllIn {

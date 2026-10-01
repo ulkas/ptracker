@@ -5,13 +5,13 @@ PTracker is a private, mobile-first cash poker tracker that runs entirely in the
 ## What is implemented
 
 - Installable/offline production PWA with strictly manual, backup-aware version updates
-- Poker rooms with default stakes, live NLH sessions, and historical-session entry
+- Poker rooms with default stakes, mixed-game sessions, and historical-session entry for NLH, PLO4, PLO5, and PLO4 double-board bomb pots
 - Event-based buy-ins, add-ons, tips, expenses, breaks and cash-out
 - Gross/net P&L, duration, hourly, BB/hour, room and filtered dashboard statistics
 - Currency-safe cumulative native-SVG profit and bankroll charts
 - Monthly session calendar with daily net results
 - Session history and search
-- Quick gain/loss tracking plus detailed hands with a mobile 52-card picker
+- Quick game-specific gain/loss tracking plus detailed NLH/PLO hands with a mobile 52-card picker and one/two boards
 - Tracked live stack in currency and big blinds, with cash-out reconciliation
 - Dedicated editable Rooms, Expenses, Tips, and per-currency Bankroll pages; standalone expenses automatically reduce bankroll
 - Multi-player Hold'em equity calculator (exact on turn/river, Monte Carlo earlier)

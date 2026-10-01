@@ -1,20 +1,21 @@
 import Dexie from 'dexie';
 import { db, notifyDbChanged, readAllData } from './db';
 import { sessionMetrics } from './domain';
+import { GAME_TYPES, normalizeBoards, validateHandShape } from './games';
 import type { AppData, PokerRoom, Session } from './types';
 
-export interface BackupEnvelope { application: 'poker-tracker'; backupVersion: 1; databaseVersion: 1 | 2 | 3 | 4; exportedAt: string; data: AppData; }
+export interface BackupEnvelope { application: 'poker-tracker'; backupVersion: 1; databaseVersion: 1 | 2 | 3 | 4 | 5; exportedAt: string; data: AppData; }
 export const BACKUP_TABLES: (keyof AppData)[] = ['pokerRooms', 'sessions', 'sessionCashEvents', 'sessionBreaks', 'hands', 'allIns', 'players', 'bankrollEvents', 'settings'];
 
 export async function createBackup(database = db): Promise<BackupEnvelope> {
-  return { application: 'poker-tracker', backupVersion: 1, databaseVersion: 4, exportedAt: new Date().toISOString(), data: await readAllData(database) };
+  return { application: 'poker-tracker', backupVersion: 1, databaseVersion: 5, exportedAt: new Date().toISOString(), data: await readAllData(database) };
 }
 
 export function validateBackup(input: unknown): BackupEnvelope {
   if (!input || typeof input !== 'object') throw new Error('Backup must be a JSON object.');
   const value = input as Partial<BackupEnvelope>;
   if (value.application !== 'poker-tracker') throw new Error('This file is not a PTracker backup.');
-  if (value.backupVersion !== 1 || ![1, 2, 3, 4].includes(value.databaseVersion ?? 0)) throw new Error('Unsupported backup version.');
+  if (value.backupVersion !== 1 || ![1, 2, 3, 4, 5].includes(value.databaseVersion ?? 0)) throw new Error('Unsupported backup version.');
   if (!value.exportedAt || Number.isNaN(Date.parse(value.exportedAt))) throw new Error('Backup timestamp is invalid.');
   if (!value.data || typeof value.data !== 'object') throw new Error('Backup data is missing.');
   const ids = new Set<string>();
@@ -36,10 +37,14 @@ export function validateBackup(input: unknown): BackupEnvelope {
   const sessionIds = new Set(value.data.sessions.map((session) => session.id));
   const validDate = (date: unknown) => typeof date === 'string' && !Number.isNaN(Date.parse(date));
   value.data.pokerRooms = value.data.pokerRooms.map((room) => ({ ...room, defaultSmallBlind: room.defaultSmallBlind ?? 100, defaultBigBlind: room.defaultBigBlind ?? 200 }));
-  value.data.hands = value.data.hands.map((hand) => ({ ...hand, entryMode: hand.entryMode ?? 'detailed' }));
+  value.data.sessions = value.data.sessions.map((session) => ({ ...session, gameType: session.gameType ?? 'NLH' }));
+  const sessionGames = new Map(value.data.sessions.map((session) => [session.id, session.gameType]));
+  value.data.hands = value.data.hands.map((hand) => ({ ...hand, entryMode: hand.entryMode ?? 'detailed', gameType: hand.gameType ?? sessionGames.get(hand.sessionId ?? '') ?? 'NLH', boards: hand.boards?.length ? hand.boards : hand.board?.length ? [hand.board] : [[]] }));
   value.data.bankrollEvents = value.data.bankrollEvents.map((event) => ({ ...event, source: event.source ?? (event.sessionId ? 'session' : 'manual') }));
   if (value.data.pokerRooms.some((room) => !room.name || !validDate(room.createdAt) || !validDate(room.updatedAt))) throw new Error('A poker room has an invalid shape or timestamp.');
   if (value.data.sessions.some((session) => !validDate(session.startedAt) || (session.endedAt !== undefined && !validDate(session.endedAt)) || session.smallBlind < 0 || session.bigBlind <= 0)) throw new Error('A session has an invalid shape, timestamp, or stakes.');
+  if (value.data.sessions.some((session) => !GAME_TYPES.includes(session.gameType!))) throw new Error('A session contains an unsupported game.');
+  if (value.data.hands.some((hand) => !GAME_TYPES.includes(hand.gameType!) || (() => { try { validateHandShape(hand.gameType!, hand.heroCards, normalizeBoards(hand)); return false; } catch { return true; } })())) throw new Error('A hand contains invalid cards, boards, or game data.');
   if (value.data.sessions.some((session) => !roomIds.has(session.roomId))) throw new Error('A session references a missing poker room.');
   if (value.data.sessionCashEvents.some((event) => event.type !== 'EXPENSE' && (!event.sessionId || !sessionIds.has(event.sessionId)))) throw new Error('A cash event references a missing session.');
   if (value.data.sessionCashEvents.some((event) => event.sessionId && !sessionIds.has(event.sessionId))) throw new Error('An expense references a missing session.');
