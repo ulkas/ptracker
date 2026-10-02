@@ -1,6 +1,6 @@
 {
   "basePath": "/ptracker/",
-  "releasedAt": "2026-10-01T12:40:00Z",
+  "releasedAt": "2026-10-02T15:10:00Z",
   "minimumSupportedVersion": "0.1.0",
   "databaseVersion": 5,
   "databaseMigration": true,
@@ -10,6 +10,7 @@
     "Limited automatic update discovery to one metadata request per 24 hours",
     "Disabled pull-to-refresh and added production network auditing",
     "Added NLH, PLO4, PLO5, and PLO4 double-board bomb-pot hand recording",
-    "Added manual tracked-stack adjustment during live sessions"
+    "Added manual tracked-stack adjustment during live sessions",
+    "Migrated legacy service-worker registrations and hardened manual updates"
   ]
 }

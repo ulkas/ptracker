@@ -12,6 +12,10 @@ location = /ptracker/release-manifest.json {
     add_header Cache-Control "no-store, no-cache, must-revalidate" always;
 }
 
+location = /ptracker/service-worker.js {
+    return 404;
+}
+
 location ~ ^/ptracker/(sw-[0-9A-Za-z.+-]+\.js)$ {
     alias /srv/ptracker/current/$1;
     add_header Cache-Control "no-cache" always;

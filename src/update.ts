@@ -96,6 +96,17 @@ export function normalizeUpdateMetadata(metadata: UpdateMetadata): UpdateMetadat
 }
 
 export const releaseMetadataUrl = (base = import.meta.env.BASE_URL) => `${base}version.json`;
+export const workerUrl = (version = APP_VERSION, base = import.meta.env.BASE_URL) => `${base}sw-${version}.js`;
+
+export async function ensureCurrentWorker() {
+  if (!('serviceWorker' in navigator)) return undefined;
+  const base = import.meta.env.BASE_URL;
+  const expected = new URL(workerUrl(), location.origin).pathname;
+  const registration = await navigator.serviceWorker.getRegistration(base);
+  const matches = (worker?: ServiceWorker | null) => Boolean(worker?.scriptURL && new URL(worker.scriptURL).pathname === expected);
+  if (registration && (matches(registration.active) || matches(registration.waiting) || matches(registration.installing))) return registration;
+  return navigator.serviceWorker.register(workerUrl(), { scope: base, updateViaCache: 'none' });
+}
 
 export async function fetchReleaseMetadata(fetcher: typeof fetch = fetch, reason = 'scheduled update check') {
   const url = releaseMetadataUrl();
@@ -129,18 +140,15 @@ export async function verifyLocalDatabase() {
 }
 
 export async function requestReleasePreparation(release: ReleaseMetadata) {
-  const controller = navigator.serviceWorker?.controller;
-  if (!controller) throw new Error('The installed app is not controlled by its offline worker yet. Close and reopen PTracker, then try again.');
-  await new Promise<void>((resolve, reject) => {
-    const channel = new MessageChannel();
-    const timeout = window.setTimeout(() => reject(new Error('The update download did not finish in time.')), 120_000);
-    channel.port1.onmessage = (event) => {
-      window.clearTimeout(timeout);
-      if (event.data?.type === 'PREPARE_COMPLETE') resolve();
-      else reject(new Error(event.data?.error || 'The update could not be prepared.'));
-    };
-    controller.postMessage({ type: 'PREPARE_UPDATE', version: release.latestVersion, manifestUrl: release.releaseManifest }, [channel.port2]);
-  });
+  const expected = new URL(release.serviceWorker, location.origin).pathname;
+  try {
+    const registration = await navigator.serviceWorker.register(release.serviceWorker, { scope: import.meta.env.BASE_URL, updateViaCache: 'none' });
+    await waitForWaitingWorker(registration, expected);
+  } catch (reason) {
+    const registration = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL).catch(() => undefined);
+    const snapshot = registration ? [registration.active, registration.waiting, registration.installing].filter(Boolean).map((worker) => `${worker!.state}:${new URL(worker!.scriptURL).pathname}`).join(', ') || 'none' : 'registration unavailable';
+    throw new Error(`${reason instanceof Error ? reason.message : 'The update worker did not install.'} Target: ${expected}. Registered workers: ${snapshot}.`);
+  }
 }
 
 async function waitForWaitingWorker(registration: ServiceWorkerRegistration, expectedUrl: string) {

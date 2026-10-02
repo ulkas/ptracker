@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { APP_VERSION, compareSemver, fetchReleaseMetadata, normalizeUpdateMetadata, parseSemver, releaseMetadataUrl, shouldRunPassiveCheck, stateFromMetadata, validateReleaseMetadata, type ReleaseMetadata } from '../src/update';
+import { APP_VERSION, compareSemver, fetchReleaseMetadata, normalizeUpdateMetadata, parseSemver, releaseMetadataUrl, shouldRunPassiveCheck, stateFromMetadata, validateReleaseMetadata, workerUrl, type ReleaseMetadata } from '../src/update';
 
 const release = (version = '9.10.2'): ReleaseMetadata => ({
   latestVersion: version,
@@ -22,6 +22,7 @@ describe('semantic version comparison', () => {
 });
 
 describe('metadata-only detection', () => {
+  it('builds versioned worker URLs for registration migration', () => { expect(workerUrl('0.3.2', '/ptracker/')).toBe('/ptracker/sw-0.3.2.js'); });
   it('fetches only no-cache version metadata', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify(release()), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     const result = await fetchReleaseMetadata(fetcher as typeof fetch);
@@ -47,6 +48,13 @@ describe('immutable worker protocol', () => {
   it('never activates from the install handler', () => { const install = source.slice(source.indexOf("addEventListener('install'"), source.indexOf("addEventListener('activate'")); expect(install).not.toContain('skipWaiting'); });
   it('requires explicit activation and delayed cleanup messages', () => { expect(source).toContain("message?.type === 'ACTIVATE_UPDATE'"); expect(source).toContain("message?.type === 'UPDATE_CONFIRMED'"); });
   it('serves navigation from the selected version cache', () => { expect(source).toContain("event.request.mode === 'navigate'"); expect(source).toContain('caches.open(CURRENT_CACHE)'); });
+});
+
+describe('legacy worker migration safeguards', () => {
+  const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+  const exampleProxy = readFileSync(new URL('../deploy/nginx-ptracker.conf.example', import.meta.url), 'utf8');
+  it('checks the active registration instead of only registering when absent', () => { expect(main).toContain('ensureCurrentWorker'); expect(main).not.toContain('if (!registration) return navigator.serviceWorker.register'); });
+  it('does not serve the obsolete worker path through the SPA fallback', () => { expect(exampleProxy).toContain('location = /ptracker/service-worker.js'); expect(exampleProxy).toContain('return 404;'); });
 });
 
 describe('installed mobile gesture policy', () => {
