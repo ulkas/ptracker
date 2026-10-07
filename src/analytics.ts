@@ -51,3 +51,23 @@ export function sessionCalendar(year: number, month: number, sessions: Session[]
   }
   return { offset, days };
 }
+
+export interface TipCalendarDay { date: string; day: number; amount: number; }
+
+export function rollingTipsCalendar(events: SessionCashEvent[], currency: string, currencyOf: (event: SessionCashEvent) => string = (event) => event.currency ?? '', now = new Date()): { days: TipCalendarDay[]; total: number } {
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (29 - index));
+    return { date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`, day: date.getDate(), amount: 0 };
+  });
+  const byDate = new Map(days.map(day => [day.date, day]));
+  for (const event of events) {
+    if (event.type !== 'TIP_TABLE' && event.type !== 'TIP_END') continue;
+    if (currencyOf(event) !== currency) continue;
+    const date = new Date(event.timestamp);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const day = byDate.get(key);
+    if (day) day.amount += event.amount;
+  }
+  return { days, total: days.reduce((sum, day) => sum + day.amount, 0) };
+}

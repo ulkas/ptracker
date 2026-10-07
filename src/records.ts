@@ -60,6 +60,15 @@ export async function setBankrollBalance(currency: Currency, target: number) {
 export async function saveCompletedSession(session: Session, values: { totalIn: number; cashOut: number; tableTips: number; endTips: number; expense: number; expenseNote: string }) {
   await db.transaction('rw', db.sessions, db.sessionCashEvents, db.bankrollEvents, async () => {
     await db.sessions.put(session);
+    const existing = await db.sessionCashEvents.where('sessionId').equals(session.id).toArray();
+    if (existing.length) {
+      const desired: Record<string, number> = { INITIAL_BUYIN: values.totalIn, CASHOUT: values.cashOut, TIP_TABLE: values.tableTips, TIP_END: values.endTips, EXPENSE: values.expense };
+      for (const [type, amount] of Object.entries(desired)) {
+        const matches = existing.filter((event) => event.type === type);
+        if (matches.length === 1) await db.sessionCashEvents.update(matches[0]!.id, { amount, ...(type === 'EXPENSE' ? { note: values.expenseNote } : {}) });
+      }
+      return;
+    }
     await db.sessionCashEvents.where('sessionId').equals(session.id).delete();
     const timestamp = session.endedAt ?? session.startedAt;
     const rows = [

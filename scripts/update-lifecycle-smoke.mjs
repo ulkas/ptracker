@@ -83,8 +83,8 @@ try {
   const { currentVersion, nextVersion } = await prepareReleases();
   const port = await startServer();
   const chromePath = await findChrome();
-  const debugPort = 9337;
-  chrome = spawn(chromePath, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(temp, 'profile')}`, `http://127.0.0.1:${port}/ptracker/?view=settings`], { stdio: 'ignore', windowsHide: true });
+  const debugPort = 9337 + Math.floor(Math.random() * 1000);
+  chrome = spawn(chromePath, ['--headless=new', '--disable-gpu', '--disable-software-rasterizer', '--disable-dev-shm-usage', '--disable-crash-reporter', '--no-sandbox', '--no-first-run', '--no-default-browser-check', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(temp, 'profile')}`, `http://127.0.0.1:${port}/ptracker/?view=settings`], { stdio: 'ignore', windowsHide: true });
   const cdp = await connectCdp(debugPort);
   await cdp.send('Page.enable'); await cdp.send('Runtime.enable');
   console.log('Chrome opened release A.');

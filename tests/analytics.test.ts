@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cumulativeChanges, roomPerformance, sessionCalendar } from '../src/analytics';
+import { cumulativeChanges, rollingTipsCalendar, roomPerformance, sessionCalendar } from '../src/analytics';
 import type { PokerRoom, Session, SessionCashEvent } from '../src/types';
 
 const stamp = (day: number) => new Date(2026, 8, day, 12).toISOString();
@@ -32,5 +32,20 @@ describe('visual analytics', () => {
     expect(calendar.offset).toBe(2);
     expect(calendar.days[1]).toEqual({ day: 2, sessions: 2, net: 300 });
     expect(calendar.days[8]).toEqual({ day: 9, sessions: 1, net: -100 });
+  });
+
+  it('builds a rolling 30-day tips calendar with empty days and currency separation', () => {
+    const now = new Date(2026, 8, 30, 12);
+    const events: SessionCashEvent[] = [
+      { id: 'eur-1', timestamp: new Date(2026, 8, 30, 9).toISOString(), type: 'TIP_TABLE', amount: 500, note: '', currency: 'EUR' },
+      { id: 'eur-2', timestamp: new Date(2026, 8, 30, 18).toISOString(), type: 'TIP_END', amount: 250, note: '', currency: 'EUR' },
+      { id: 'usd-1', timestamp: new Date(2026, 8, 29, 12).toISOString(), type: 'TIP_TABLE', amount: 700, note: '', currency: 'USD' },
+    ];
+    const eur = rollingTipsCalendar(events, 'EUR', undefined, now);
+    expect(eur.days).toHaveLength(30);
+    expect(eur.total).toBe(750);
+    expect(eur.days.at(-1)?.amount).toBe(750);
+    expect(eur.days.at(-2)?.amount).toBe(0);
+    expect(rollingTipsCalendar(events, 'USD', undefined, now).total).toBe(700);
   });
 });

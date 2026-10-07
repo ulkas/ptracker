@@ -1,7 +1,7 @@
 # Screen map
 
 - Dashboard: headline net/gross result, cumulative chart, hours, hourly, BB/hour, session count, recent sessions, room and stake performance, global time filter.
-- Sessions: chronological/searchable history, historical entry, session editing and cascade deletion. Its action starts or returns to Live.
+- Sessions: chronological/searchable history; selecting a row opens dedicated session details with metadata editing, complete cash activity, hands, breaks, all-ins, and cross-context record editing. Its action starts or returns to Live.
 - Live: session setup or active table-optimized timer, default game, total in/current stack/P&L, quick buy-in/add-on/tip/expense/detailed-hand/quick-hand actions, cash-out flow.
 - Hands: game-categorized manual hand list and compact recorder supporting NLH, PLO4, PLO5, and PLO4 double-board bomb pots with one or two boards.
 - Rooms: venue CRUD, archival, notes, currencies, and default stakes.
