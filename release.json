@@ -1,6 +1,6 @@
 {
   "basePath": "/ptracker/",
-  "releasedAt": "2026-10-02T15:10:00Z",
+  "releasedAt": "2026-10-08T00:30:00Z",
   "minimumSupportedVersion": "0.1.0",
   "databaseVersion": 5,
   "databaseMigration": true,
@@ -11,6 +11,7 @@
     "Disabled pull-to-refresh and added production network auditing",
     "Added NLH, PLO4, PLO5, and PLO4 double-board bomb-pot hand recording",
     "Added manual tracked-stack adjustment during live sessions",
-    "Migrated legacy service-worker registrations and hardened manual updates"
+    "Migrated legacy service-worker registrations and hardened manual updates",
+    "Added dedicated session details, chronological session activity, and cross-context record editing"
   ]
 }
